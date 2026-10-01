@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 
 import '../services/revenuecat_service.dart';
 
@@ -89,11 +90,10 @@ class _ReconstructionScreenState
             mainAxisAlignment:
                 MainAxisAlignment.center,
             children: [
-              const Text(
-                '🏰',
-                style: TextStyle(
-                  fontSize: 90,
-                ),
+              SvgPicture.asset(
+                'assets/ReconstructionScreen.svg',
+                width: 250,
+                height: 250,
               ),
 
               const SizedBox(height: 24),

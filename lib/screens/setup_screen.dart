@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../services/storage_service.dart';
 
 import 'home_screen.dart';
@@ -26,11 +28,10 @@ class _SetupScreenState extends State<SetupScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
 
                 children: [
-                  const Text(
-                    '🏰',
-                    style: TextStyle(
-                      fontSize: 70,
-                    ),
+                  SvgPicture.asset(
+                    'assets/SetupScreenLogo.svg',
+                    width: 250,
+                    height: 250,
                   ),
 
                   const SizedBox(height: 20),

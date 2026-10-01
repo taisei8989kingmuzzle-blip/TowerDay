@@ -59,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          '🏰 My Little Tower',
+          'My Tower',
         ),
         backgroundColor: Colors.transparent,
       ),
@@ -88,9 +88,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             MainAxisAlignment.center,
                         children: [
                           SvgPicture.asset(
-                            'assets/TowerDayHomeLogo.svg',
-                            width: 180,
-                            height: 180,
+                            'assets/SetupScreenLogo.svg',
+                            width: 190,
+                            height: 190,
                           ),
                           SizedBox(height: 15),
                           Text(

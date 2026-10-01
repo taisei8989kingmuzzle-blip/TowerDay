@@ -15,7 +15,9 @@ class Tower extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return 
+    SingleChildScrollView(
+    child: Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         for (int i = 0; i < days.length; i++)
@@ -33,6 +35,7 @@ class Tower extends StatelessWidget {
           ),
         ),
       ],
+    ),
     );
   }
 }

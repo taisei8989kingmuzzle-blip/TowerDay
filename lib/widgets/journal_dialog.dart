@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 
 import '../models/tower_day.dart';
 import '../services/storage_service.dart';
@@ -87,7 +88,11 @@ class _JournalDialogState
     return AlertDialog(
       title: Row(
         children: [
-          const Text('🏰'),
+          SvgPicture.asset(
+            'assets/SetupScreenLogo.svg',
+            width: 250,
+            height: 250,
+          ),
           const SizedBox(width: 10),
           Text('Day ${widget.floorNumber}'),
         ],
