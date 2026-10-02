@@ -6,7 +6,8 @@ class ScreenTimeService {
       MethodChannel('my_little_tower/screen_time');
 
   // Demo mode lets us test the app without an Android phone.
-  static bool demoMode = true;
+  //turn it into false when actually implementing the actual app
+  static bool demoMode = false;
 
   // Default simulated screen time.
   static int demoMinutes = 120;
