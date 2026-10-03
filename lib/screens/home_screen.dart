@@ -49,6 +49,28 @@ class _HomeScreenState extends State<HomeScreen> {
       towerDays = days;
       todayScreenTime = screenTime;
     });
+
+    await _processToday(screenTime);
+  }
+
+  Future<void> _processToday(int screenTime) async {
+    if(!mounted) return;
+
+    final todayKey = _dateKey(DateTime.now());
+
+    final alreadyChecked = towerDays.any(
+      (day) => _dateKey(DateTime.parse(day.date)) == todayKey,
+    );
+
+    if(alreadyChecked) {
+      return;
+    }
+
+    if(screenTime <= goalMinutes) {
+      await _successfulDay(screenTime);
+    } else {
+      await _failedDay(screenTime);
+    }
   }
 
   @override
@@ -155,21 +177,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 15),
 
-                  FilledButton(
-                    onPressed:
-                        checking ? null : _checkToday,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 12,
-                      ),
-                      child: Text(
-                        checking
-                            ? 'Checking...'
-                            : "Check Today's Progress",
-                      ),
-                    ),
-                  ),
+                  // FilledButton(
+                  //   onPressed:
+                  //       checking ? null : _checkToday,
+                  //   child: Padding(
+                  //     padding: const EdgeInsets.symmetric(
+                  //       horizontal: 18,
+                  //       vertical: 12,
+                  //     ),
+                  //     child: Text(
+                  //       checking
+                  //           ? 'Checking...'
+                  //           : "Check Today's Progress",
+                  //     ),
+                  //   ),
+                  // ),
 
                   const SizedBox(height: 8),
 
@@ -202,8 +224,9 @@ class _HomeScreenState extends State<HomeScreen> {
       checking = true;
     });
 
+    try {
     final screenTime =
-        await _screenTimeService.getTodayScreenTimeMinutes();
+        await _screenTimeService.getTodayScreenTimeMinutes().timeout(const Duration(seconds: 10));
 
     if (!mounted) return;
 
@@ -236,12 +259,25 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       await _failedDay(screenTime);
     }
+    } catch (e) {
+      debugPrint('Screen-time check failed: $e');
 
     if (!mounted) return;
 
-    setState(() {
-      checking = false;
-    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Could not read screen time: $e'),
+      ),
+    );
+    } finally {
+      if(mounted) {
+        setState(() {
+          checking = false;
+        });
+      }
+
+    
+    }
   }
 
   Future<void> _openReconstruction() async {
@@ -491,7 +527,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: OutlinedButton(
-          onPressed: () {
+          onPressed: () async {
             _screenTimeService.setDemoMinutes(
               minutes,
             );
@@ -501,6 +537,8 @@ class _HomeScreenState extends State<HomeScreen> {
             });
 
             Navigator.pop(context);
+
+            await _processToday(minutes);
           },
           child: Text(label),
         ),

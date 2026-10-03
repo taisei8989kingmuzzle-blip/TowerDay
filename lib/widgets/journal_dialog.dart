@@ -90,8 +90,8 @@ class _JournalDialogState
         children: [
           SvgPicture.asset(
             'assets/SetupScreenLogo.svg',
-            width: 250,
-            height: 250,
+            width: 170,
+            height: 170,
           ),
           const SizedBox(width: 10),
           Text('Day ${widget.floorNumber}'),
