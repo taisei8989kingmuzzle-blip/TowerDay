@@ -86,133 +86,145 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.transparent,
       ),
 
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 5),
-
-            Text(
-              '${towerDays.length} day tower',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF6F4935),
+      body: 
+      
+      Stack(
+        fit: StackFit.expand,
+        children: [
+          SvgPicture.asset(
+            'assets/TowerDayBackground.svg',
+            fit: BoxFit.cover,
+          ),
+          
+          SafeArea(
+          child: Column(
+            children: [
+              const SizedBox(height: 5),
+        
+              Text(
+                '${towerDays.length} day tower',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF6F4935),
+                ),
               ),
-            ),
-
-            const SizedBox(height: 15),
-
-            Expanded(
-              child: Center(
-                child: towerDays.isEmpty
-                    ?  Column(
-                        mainAxisAlignment:
-                            MainAxisAlignment.center,
-                        children: [
-                          SvgPicture.asset(
-                            'assets/SetupScreenLogo.svg',
-                            width: 190,
-                            height: 190,
-                          ),
-                          SizedBox(height: 15),
-                          Text(
-                            'Your tower is waiting\nfor its first floor.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Color(0xFF6F4935),
+        
+              const SizedBox(height: 15),
+        
+              Expanded(
+                child: Center(
+                  child: towerDays.isEmpty
+                      ?  Column(
+                          mainAxisAlignment:
+                              MainAxisAlignment.center,
+                          children: [
+                            SvgPicture.asset(
+                              'assets/SetupScreenLogo.svg',
+                              width: 190,
+                              height: 190,
                             ),
-                          ),
-                        ],
-                      )
-                    : Tower(
-                        days: towerDays,
-                        onFloorTap: _showJournal,
+                            SizedBox(height: 15),
+                            Text(
+                              'Your tower is waiting\nfor its first floor.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Color(0xFF6F4935),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Tower(
+                          days: towerDays,
+                          onFloorTap: _showJournal,
+                        ),
+                ),
+              ),
+        
+              Container(
+                margin: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFE8D2),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      "Today's Screen Time",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
+                    ),
+        
+                    const SizedBox(height: 8),
+        
+                    Text(
+                      '${_formatMinutes(todayScreenTime)} / '
+                      '${_formatMinutes(goalMinutes)}',
+                      style: const TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF6F4935),
+                      ),
+                    ),
+        
+                    const SizedBox(height: 5),
+        
+                    Text(
+                      remaining >= 0
+                          ? '${_formatMinutes(remaining)} remaining'
+                          : '${_formatMinutes(-remaining)} over goal',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: remaining >= 0
+                            ? Colors.green.shade700
+                            : Colors.red.shade700,
+                      ),
+                    ),
+        
+                    const SizedBox(height: 15),
+        
+                    // FilledButton(
+                    //   onPressed:
+                    //       checking ? null : _checkToday,
+                    //   child: Padding(
+                    //     padding: const EdgeInsets.symmetric(
+                    //       horizontal: 18,
+                    //       vertical: 12,
+                    //     ),
+                    //     child: Text(
+                    //       checking
+                    //           ? 'Checking...'
+                    //           : "Check Today's Progress",
+                    //     ),
+                    //   ),
+                    // ),
+        
+                    const SizedBox(height: 8),
+        
+                    TextButton(
+                      onPressed: _showDemoControls,
+                      child: const Text(
+                        'Demo: Change Screen Time',
+                      ),
+                    ),
+        
+                    TextButton(
+                      onPressed: _resetForTesting,
+                      child: const Text(
+                        'reset screen time check for the day',
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-
-            Container(
-              margin: const EdgeInsets.all(18),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFE8D2),
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: Column(
-                children: [
-                  const Text(
-                    "Today's Screen Time",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  Text(
-                    '${_formatMinutes(todayScreenTime)} / '
-                    '${_formatMinutes(goalMinutes)}',
-                    style: const TextStyle(
-                      fontSize: 25,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF6F4935),
-                    ),
-                  ),
-
-                  const SizedBox(height: 5),
-
-                  Text(
-                    remaining >= 0
-                        ? '${_formatMinutes(remaining)} remaining'
-                        : '${_formatMinutes(-remaining)} over goal',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: remaining >= 0
-                          ? Colors.green.shade700
-                          : Colors.red.shade700,
-                    ),
-                  ),
-
-                  const SizedBox(height: 15),
-
-                  // FilledButton(
-                  //   onPressed:
-                  //       checking ? null : _checkToday,
-                  //   child: Padding(
-                  //     padding: const EdgeInsets.symmetric(
-                  //       horizontal: 18,
-                  //       vertical: 12,
-                  //     ),
-                  //     child: Text(
-                  //       checking
-                  //           ? 'Checking...'
-                  //           : "Check Today's Progress",
-                  //     ),
-                  //   ),
-                  // ),
-
-                  const SizedBox(height: 8),
-
-                  TextButton(
-                    onPressed: _showDemoControls,
-                    child: const Text(
-                      'Demo: Change Screen Time',
-                    ),
-                  ),
-
-                  TextButton(
-                    onPressed: _resetForTesting,
-                    child: const Text(
-                      'reset screen time check for the day',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
+        ],
       ),
     );
   }

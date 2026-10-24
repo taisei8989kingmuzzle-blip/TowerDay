@@ -84,73 +84,42 @@ class MainActivity : FlutterActivity() {
     
     
     
+    
+        
+        
+        
     private fun getTodayScreenTime(): Int {
-        val manager =
-            getSystemService(Context.USAGE_STATS_SERVICE)
-                as UsageStatsManager
+        val manager = getSystemService(
+            Context.USAGE_STATS_SERVICE
+        ) as UsageStatsManager
 
-        val calendar = java.util.Calendar.getInstance()
-        calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
-        calendar.set(java.util.Calendar.MINUTE, 0)
-        calendar.set(java.util.Calendar.SECOND, 0)
-        calendar.set(java.util.Calendar.MILLISECOND, 0)
+        val calendar = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }
 
         val startOfDay = calendar.timeInMillis
         val now = System.currentTimeMillis()
 
-        val events = manager.queryEvents(startOfDay, now)
-        val event = android.app.usage.UsageEvents.Event()
-
-        var screenIsOn = false
-        var screenOnStart = 0L
-        var totalScreenOnMs = 0L
-        var sawScreenEvent = false
-
-        while (events.hasNextEvent()) {
-            events.getNextEvent(event)
-
-            when (event.eventType) {
-                android.app.usage.UsageEvents.Event.SCREEN_INTERACTIVE -> {
-                    if (!screenIsOn) {
-                        screenIsOn = true
-                        screenOnStart = event.timeStamp
-                    }
-                    sawScreenEvent = true
-                }
-
-                android.app.usage.UsageEvents.Event.SCREEN_NON_INTERACTIVE -> {
-                    if (screenIsOn) {
-                        totalScreenOnMs +=
-                            event.timeStamp - screenOnStart
-                    } else if (!sawScreenEvent) {
-                        // The first recorded event is screen-off.
-                        // The state at midnight is unknown, so use
-                        // an estimate for this initial interval.
-                        totalScreenOnMs +=
-                            event.timeStamp - startOfDay
-                    }
-
-                    screenIsOn = false
-                    screenOnStart = 0L
-                    sawScreenEvent = true
-                }
-            }
-        }
-
-        // If the screen is still interactive, count up to now.
-        if (screenIsOn && now > screenOnStart) {
-            totalScreenOnMs += now - screenOnStart
-        }
-
-        val minutes = (totalScreenOnMs / 60_000L).toInt()
-
-        android.util.Log.d(
-            "TowerScreenTime",
-            "SCREEN-ON TOTAL: $minutes minutes"
+        // Android merges records for each package.
+        val stats = manager.queryAndAggregateUsageStats(
+            startOfDay,
+            now
         )
 
-        return minutes
+        // Sum each package's aggregated foreground time.
+        val totalMs = stats.values.sumOf {
+            it.totalTimeInForeground
+        }
+
+        return (totalMs / 60_000L).toInt()
     }
+
+
+
+
 
 
     
@@ -183,8 +152,7 @@ class MainActivity : FlutterActivity() {
             }
         }
     }
-
-
-
-
 }
+
+
+
