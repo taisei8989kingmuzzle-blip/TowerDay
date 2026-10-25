@@ -14,6 +14,12 @@ class MainActivity : FlutterActivity() {
 
     private val CHANNEL = "my_little_tower/screen_time"
 
+    private val excludedPackages = setOf(
+        "com.android.systemui",
+        "com.sec.android.app.launcher",
+        "com.android.incallui",
+    )
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
@@ -44,6 +50,7 @@ class MainActivity : FlutterActivity() {
                     }
 
                     try {
+                        printAppScreenTimes()
                         val minutes = getTodayScreenTime()
                         result.success(minutes)
                     } catch (e: Exception) {
@@ -55,12 +62,51 @@ class MainActivity : FlutterActivity() {
                     }
                 }
 
+                "getScreenTimeForDate" -> {
+                    if(!hasUsageAccess()) {
+                        result.error(
+                            "NO_PERMISSION",
+                            "Usage access has not been granted.",
+                            null
+                        )
+                        return@setMethodCallHandler
+                    }
+                    val startMillis = call.argument<Long>("startMillis")
+                    val endMillis = call.argument<Long>("endMillis")
+
+                    if (startMillis == null || endMillis == null || endMillis <= startMillis) {
+                        result.error(
+                            "INVALID_DATE_RANGE",
+                            "A valid start and end time are required.",
+                            null
+                        )
+                    } else {
+                        try {
+                            printAppScreenTimes()
+                            val minutes = getScreenTimeBetween(
+                                startMillis, 
+                                endMillis
+                            )
+                            result.success(minutes)
+                        } catch (e: Exception) {
+                            result.error(
+                                "SCREEN_TIME_ERROR",
+                                e.message,
+                                null
+                            )
+                        }
+                    }
+                }
+
                 else -> {
                     result.notImplemented()
                 }
             }
         }
+        
     }
+
+    
 
     private fun hasUsageAccess(): Boolean {
         val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
@@ -110,23 +156,40 @@ class MainActivity : FlutterActivity() {
         )
 
         // Sum each package's aggregated foreground time.
-        val totalMs = stats.values.sumOf {
-            it.totalTimeInForeground
-        }
+        val totalMs = stats.values
+            .filterNot { it.packageName in excludedPackages }
+            .sumOf { it.totalTimeInForeground }
 
         return (totalMs / 60_000L).toInt()
     }
 
 
+            private fun getScreenTimeBetween(
+            startMillis: Long,
+            endMillis: Long
+        ): Int {
+            val usageStatsManager = getSystemService(
+                USAGE_STATS_SERVICE
+            ) as android.app.usage.UsageStatsManager
+
+            val usageStats =
+                usageStatsManager.queryAndAggregateUsageStats(
+                    startMillis,
+                    endMillis
+                )
+
+            val totalForegroundMillis = usageStats.values
+                .filterNot { it.packageName in excludedPackages }
+                .sumOf { it.totalTimeInForeground }
+            return (totalForegroundMillis / 60_000L).toInt()
+        }
 
 
 
-
-    
-    private fun debugInstagramUsage() {
-        val manager =
-            getSystemService(Context.USAGE_STATS_SERVICE)
-                as UsageStatsManager
+        private fun printAppScreenTimes() {
+        val usageStatsManager = getSystemService(
+            android.content.Context.USAGE_STATS_SERVICE
+        ) as android.app.usage.UsageStatsManager
 
         val calendar = java.util.Calendar.getInstance()
         calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
@@ -134,24 +197,41 @@ class MainActivity : FlutterActivity() {
         calendar.set(java.util.Calendar.SECOND, 0)
         calendar.set(java.util.Calendar.MILLISECOND, 0)
 
-        val stats = manager.queryUsageStats(
-            UsageStatsManager.INTERVAL_DAILY,
+        val usageStats = usageStatsManager.queryAndAggregateUsageStats(
             calendar.timeInMillis,
             System.currentTimeMillis()
         )
 
-        for (stat in stats) {
-            if (stat.packageName == "com.instagram.android") {
+        val pm = packageManager
+
+        android.util.Log.d("TowerScreenTime", "===== APP USAGE TODAY =====")
+
+        usageStats.values
+            .filter { it.totalTimeInForeground > 0 }
+            .sortedByDescending { it.totalTimeInForeground }
+            .forEach { stats ->
+                val packageName = stats.packageName
+
+                val appName = try {
+                    pm.getApplicationLabel(
+                        pm.getApplicationInfo(packageName, 0)
+                    ).toString()
+                } catch (_: Exception) {
+                    packageName
+                }
+
+                val minutes = stats.totalTimeInForeground / 60000.0
+
                 android.util.Log.d(
                     "TowerScreenTime",
-                    "INSTAGRAM RECORD: " +
-                        "first=${stat.firstTimeStamp}, " +
-                        "last=${stat.lastTimeStamp}, " +
-                        "used=${stat.totalTimeInForeground / 60000L} min"
+                    "$appName | $packageName | %.1f minutes".format(minutes)
                 )
             }
-        }
-    }
+
+        android.util.Log.d("TowerScreenTime", "===== END APP USAGE =====")
+    }  
+
+    
 }
 
 

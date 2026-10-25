@@ -11,6 +11,11 @@ import '../services/storage_service.dart';
 import '../widgets/journal_dialog.dart';
 import '../widgets/tower.dart';
 
+import '../models/journal_draft.dart';
+
+import '../widgets/preview_floor.dart';
+
+import '../widgets/today_journal_dialog.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -24,10 +29,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<TowerDay> towerDays = [];
 
+  JournalDraft? todayDraft;
+
   int goalMinutes = 180;
   int todayScreenTime = 120;
 
   bool checking = false;
+
+  String _dateKey(DateTime date) {
+    final localDate = DateTime(date.year, date.month, date.day);
+
+    return '${localDate.year}-'
+        '${localDate.month.toString().padLeft(2, '0')}-'
+        '${localDate.day.toString().padLeft(2, '0')}';
+  }
 
   @override
   void initState() {
@@ -35,24 +50,58 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadData();
   }
 
-  Future<void> _loadData() async {
-    final goal = await StorageService.getGoal();
-    final days = await StorageService.getTowerDays();
+    Future<void> _loadData() async {
+    try {
+      final goal = await StorageService.getGoal();
+      final days = await StorageService.getTowerDays();
+      final screenTime =
+          await _screenTimeService.getTodayScreenTimeMinutes();
+      final draft = await StorageService.getJournalDraft(
+        _dateKey(DateTime.now()),
+      );
 
-    final screenTime =
-        await _screenTimeService.getTodayScreenTimeMinutes();
+      if (!mounted) return;
 
-    if (!mounted) return;
+      setState(() {
+        goalMinutes = goal ?? 180;
+        towerDays = days;
+        todayScreenTime = screenTime;
+        todayDraft = draft;
+      });
 
-    setState(() {
-      goalMinutes = goal ?? 180;
-      towerDays = days;
-      todayScreenTime = screenTime;
-    });
+      // Process completed dates only after saved data is loaded.
+      await _processCompletedDays();
+    } catch (e) {
+      debugPrint('Failed to load tower data: $e');
 
-    await _processToday(screenTime);
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not load tower data: $e'),
+        ),
+      );
+    }
   }
+  Future<void> _showTodayJournal() async {
+    final todayKey = _dateKey(DateTime.now());
 
+    final existingDraft = 
+      await StorageService.getJournalDraft(todayKey);
+
+    if(!mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (_) => TodayJournalDialog(
+        initialDraft: existingDraft,
+        goalMinutes: goalMinutes,
+        onSaved: () async {
+          await _loadData();
+        },
+      ),
+    );
+  }
   Future<void> _processToday(int screenTime) async {
     if(!mounted) return;
 
@@ -70,6 +119,101 @@ class _HomeScreenState extends State<HomeScreen> {
       await _successfulDay(screenTime);
     } else {
       await _failedDay(screenTime);
+    }
+  }
+
+    Future<void> _processCompletedDays() async {
+    if (checking) return;
+
+    setState(() => checking = true);
+
+    try {
+      final today = DateTime.now();
+      final todayStart = DateTime(today.year, today.month, today.day);
+      final yesterday = todayStart.subtract(const Duration(days: 1));
+
+      final lastProcessed =
+          await StorageService.getLastProcessedDate();
+
+      // On first run, evaluate yesterday only.
+      DateTime nextDate = lastProcessed == null
+          ? yesterday
+          : DateTime.parse(lastProcessed)
+              .add(const Duration(days: 1));
+
+      while (nextDate.isBefore(todayStart)) {
+        final dateKey = _dateKey(nextDate);
+
+        final alreadyProcessed =
+            await StorageService.isDateProcessed(dateKey);
+
+        if (!alreadyProcessed) {
+          final minutes =
+              await _screenTimeService.getScreenTimeForDate(nextDate);
+
+          final draft =
+              await StorageService.getJournalDraft(dateKey);
+
+          final dayGoal = draft?.goalMinutes ?? goalMinutes;
+
+          if (minutes <= dayGoal) {
+            final completedDay = TowerDay(
+              date: nextDate.toIso8601String(),
+              feeling: draft?.feeling ?? '😐 Okay',
+              note: draft?.note ?? '',
+              screenTimeMinutes: minutes,
+              goalMinutes: dayGoal,
+            );
+
+            towerDays = [...towerDays, completedDay];
+
+            await StorageService.saveTowerDays(towerDays);
+            await StorageService.deleteJournalDraft(dateKey);
+          } else {
+            // Preserve the existing tower before collapsing it.
+            await StorageService.saveFallenTower(towerDays);
+            await StorageService.clearTower();
+
+            towerDays = [];
+
+            // Discard the failed day's journal draft.
+            await StorageService.deleteJournalDraft(dateKey);
+          }
+
+          await StorageService.markDateProcessed(dateKey);
+        }
+
+        await StorageService.setLastProcessedDate(dateKey);
+
+        nextDate = nextDate.add(const Duration(days: 1));
+      }
+
+      final refreshedDays = await StorageService.getTowerDays();
+      final refreshedDraft = await StorageService.getJournalDraft(
+        _dateKey(DateTime.now()),
+      );
+      final currentMinutes =
+          await _screenTimeService.getTodayScreenTimeMinutes();
+
+      if (!mounted) return;
+
+      setState(() {
+        towerDays = refreshedDays;
+        todayDraft = refreshedDraft;
+        todayScreenTime = currentMinutes;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not process screen time: $e'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => checking = false);
+      }
     }
   }
 
@@ -95,7 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
             'assets/TowerDayBackground.svg',
             fit: BoxFit.cover,
           ),
-          
+
           SafeArea(
           child: Column(
             children: [
@@ -113,34 +257,43 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 15),
         
               Expanded(
-                child: Center(
-                  child: towerDays.isEmpty
-                      ?  Column(
-                          mainAxisAlignment:
-                              MainAxisAlignment.center,
-                          children: [
-                            SvgPicture.asset(
-                              'assets/SetupScreenLogo.svg',
-                              width: 190,
-                              height: 190,
+              child: Column(
+                children: [
+                  PreviewFloor(
+                    floorNumber: towerDays.length + 1,
+                    onTap: _showTodayJournal,
+                  ),
+                  Expanded(
+                    child: Center(
+                      child: towerDays.isEmpty
+                          ? Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SvgPicture.asset(
+                                  'assets/SetupScreenLogo.svg',
+                                  width: 190,
+                                  height: 190,
+                                ),
+                                const SizedBox(height: 15),
+                                const Text(
+                                  'Your tower is waiting\nfor its first floor.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Color(0xFF6F4935),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Tower(
+                              days: towerDays,
+                              onFloorTap: _showJournal,
                             ),
-                            SizedBox(height: 15),
-                            Text(
-                              'Your tower is waiting\nfor its first floor.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Color(0xFF6F4935),
-                              ),
-                            ),
-                          ],
-                        )
-                      : Tower(
-                          days: towerDays,
-                          onFloorTap: _showJournal,
-                        ),
-                ),
+                    ),
+                  ),
+                ],
               ),
+            ),
         
               Container(
                 margin: const EdgeInsets.all(18),
@@ -464,14 +617,17 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
 
     setState(() {
-      towerDays.clear();
+      towerDays = [];
+      todayDraft = null;
     });
+
+    await _loadData();
+
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text(
-          'Test button to reset todays screentime check',
-        ),
+        content: Text('Tower test data has been reset.'),
       ),
     );
   }
@@ -550,7 +706,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
             Navigator.pop(context);
 
-            await _processToday(minutes);
           },
           child: Text(label),
         ),
@@ -569,11 +724,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  String _dateKey(DateTime date) {
-    return '${date.year}-'
-        '${date.month.toString().padLeft(2, '0')}-'
-        '${date.day.toString().padLeft(2, '0')}';
-  }
+  
 
   String _formatMinutes(int minutes) {
     final hours = minutes ~/ 60;

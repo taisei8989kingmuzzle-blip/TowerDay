@@ -12,6 +12,15 @@ class ScreenTimeService {
   // Default simulated screen time.
   static int demoMinutes = 120;
 
+  void setDemoMinutes(int minutes) {
+    demoMinutes = minutes;
+    demoMode = true;
+  }
+
+  void disableDemoMode() {
+    demoMode = false;
+  }
+
   Future<bool> hasUsageAccess() async {
     if (demoMode || kIsWeb) {
       return true;
@@ -34,20 +43,39 @@ class ScreenTimeService {
     );
   }
 
-  Future<int> getTodayScreenTimeMinutes() async {
+  Future<int> getScreenTimeMinutes() {
+    return getScreenTimeForDate(DateTime.now());
+  }
+
+  Future<int> getScreenTimeForDate(DateTime date) async {
     if (demoMode || kIsWeb) {
       return demoMinutes;
     }
 
+    final start = DateTime(date.year, date.month, date.day);
+    final end = start.add(const Duration(days: 1));
+
     final result = await _channel.invokeMethod<int>(
-      'getTodayScreenTime',
+      'getScreenTimeForDate',
+      {
+        'startMillis': start.millisecondsSinceEpoch,
+        'endMillis': end.millisecondsSinceEpoch,
+      },
     );
 
-    return result ?? 0;
+    if (result == null || result < 0) {
+      throw PlatformException(
+        code: 'INVALID_SCREEN_TIME',
+        message: 'Could not retrieve screen time for $date.',
+      );
+    }
+
+    return result;
+  }
+  Future<int> getTodayScreenTimeMinutes() {
+   return getScreenTimeForDate(DateTime.now());
   }
 
   // Development/demo helper.
-  void setDemoMinutes(int minutes) {
-    demoMinutes = minutes;
-  }
+ 
 }
