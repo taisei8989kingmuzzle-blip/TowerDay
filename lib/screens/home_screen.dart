@@ -1,7 +1,5 @@
 import 'package:flutter_svg/svg.dart';
 
-import '../services/revenuecat_service.dart';
-import 'reconstruction_screen.dart';
 
 import 'package:flutter/material.dart';
 
@@ -305,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   children: [
                     const Text(
-                      "Today's Screen Time",
+                      "Yesterday's Screen Time",
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -445,37 +443,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _openReconstruction() async {
-    final fallenTower = 
-      await StorageService.getFallenTower();
-
-      if (!mounted) return;
-
-      if(fallenTower.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'There are no collapsed tower to reconstruct.',
-            ),
-          ),
-        );
-
-        return;
-      }
-
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ReconstructionScreen(
-            onPurchaseComplete: () async {
-              await _restoreFallenTower(
-                fallenTower,
-              );
-            },
-          ),
-        ),
-      );
-  }
+  
 
   Future<void> _restoreFallenTower(
     List <TowerDay> fallenTower,
@@ -550,13 +518,6 @@ class _HomeScreenState extends State<HomeScreen> {
           'Reconstruction Kit.',
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _openReconstruction();
-            },
-            child: const Text('Reconstruct Tower'),
-          ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
