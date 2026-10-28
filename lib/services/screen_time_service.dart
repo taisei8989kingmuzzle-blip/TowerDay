@@ -47,34 +47,48 @@ class ScreenTimeService {
     return getScreenTimeForDate(DateTime.now());
   }
 
-  Future<int> getScreenTimeForDate(DateTime date) async {
-    if (demoMode || kIsWeb) {
-      return demoMinutes;
-    }
+  
+Future<int> getScreenTimeForDate(DateTime date) async {
+  if (demoMode || kIsWeb) {
+    return demoMinutes;
+  }
 
-    final start = DateTime(date.year, date.month, date.day);
-    final end = start.add(const Duration(days: 1));
+  // A reporting day runs from 6:00 a.m. to 6:00 a.m.
+  // If the requested date is before 6 a.m., use the previous day's boundary.
+  var start = DateTime(date.year, date.month, date.day, 6);
 
-    final result = await _channel.invokeMethod<int>(
-      'getScreenTimeForDate',
-      {
-        'startMillis': start.millisecondsSinceEpoch,
-        'endMillis': end.millisecondsSinceEpoch,
-      },
+  if (date.isBefore(start)) {
+    start = start.subtract(const Duration(days: 1));
+  }
+
+  final end = start.add(const Duration(days: 1));
+
+  final result = await _channel.invokeMethod<int>(
+    'getScreenTimeForDate',
+    {
+      'startMillis': start.millisecondsSinceEpoch,
+      'endMillis': end.millisecondsSinceEpoch,
+    },
+  );
+
+  if (result == null || result < 0) {
+    throw PlatformException(
+      code: 'INVALID_SCREEN_TIME',
+      message: 'Could not retrieve screen time for $date.',
     );
-
-    if (result == null || result < 0) {
-      throw PlatformException(
-        code: 'INVALID_SCREEN_TIME',
-        message: 'Could not retrieve screen time for $date.',
-      );
-    }
-
-    return result;
   }
-  Future<int> getTodayScreenTimeMinutes() {
-   return getScreenTimeForDate(DateTime.now());
-  }
+
+  return result;
+}
+
+  Future<int> getTodayScreenTimeMinutes() async {
+  if (demoMode || kIsWeb) return demoMinutes;
+
+  final result =
+      await _channel.invokeMethod<int>('getTodayScreenTime');
+
+  return result ?? 0;
+}
 
   // Development/demo helper.
  

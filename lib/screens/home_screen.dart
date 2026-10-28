@@ -34,13 +34,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool checking = false;
 
-  String _dateKey(DateTime date) {
-    final localDate = DateTime(date.year, date.month, date.day);
+  
+DateTime _reportingDayStart(DateTime date) {
+  final start = DateTime(date.year, date.month, date.day, 6);
 
-    return '${localDate.year}-'
-        '${localDate.month.toString().padLeft(2, '0')}-'
-        '${localDate.day.toString().padLeft(2, '0')}';
+  if (date.isBefore(start)) {
+    return start.subtract(const Duration(days: 1));
   }
+
+  return start;
+}
+
+String _dateKey(DateTime date) {
+  final reportingDate = _reportingDayStart(date);
+
+  return '${reportingDate.year}-'
+      '${reportingDate.month.toString().padLeft(2, '0')}-'
+      '${reportingDate.day.toString().padLeft(2, '0')}';
+}
+
 
   @override
   void initState() {
@@ -126,9 +138,11 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => checking = true);
 
     try {
+      
       final today = DateTime.now();
-      final todayStart = DateTime(today.year, today.month, today.day);
+      final todayStart = _reportingDayStart(today);
       final yesterday = todayStart.subtract(const Duration(days: 1));
+
 
       final lastProcessed =
           await StorageService.getLastProcessedDate();
@@ -269,8 +283,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 SvgPicture.asset(
                                   'assets/SetupScreenLogo.svg',
-                                  width: 190,
-                                  height: 190,
+                                  width: 165,
+                                  height: 165,
                                 ),
                                 const SizedBox(height: 15),
                                 const Text(
@@ -303,7 +317,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   children: [
                     const Text(
-                      "Yesterday's Screen Time",
+                      "Today's Screen Time",
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
