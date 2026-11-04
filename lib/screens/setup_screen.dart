@@ -14,7 +14,24 @@ class SetupScreen extends StatefulWidget {
 
 class _SetupScreenState extends State<SetupScreen> {
   int selectedGoal = 180;
+  @override
+  void initState() {
+    super.initState();
+    _loadGoal();
+  }
 
+  Future<void> _loadGoal() async {
+    final savedGoal = await StorageService.getTodayGoal();
+
+    if (!mounted) return;
+
+    if (savedGoal != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -108,7 +125,7 @@ class _SetupScreenState extends State<SetupScreen> {
 
                   FilledButton(
                     onPressed: () async {
-                      await StorageService.saveGoal(
+                      await StorageService.lockTodayGoal(
                         selectedGoal,
                       );
 
@@ -145,3 +162,4 @@ class _SetupScreenState extends State<SetupScreen> {
     );
   }
 }
+

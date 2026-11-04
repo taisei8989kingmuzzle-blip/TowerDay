@@ -174,6 +174,51 @@ static Future<void> deleteJournalDraft(String dateKey) async {
         .toList();
   }
 
+  static const String _dailyGoalKey = 'daily_goal_by_date';
+
+  static String _reportingDateKey([DateTime? date]) {
+    final now = date ?? DateTime.now();
+    final reportingDate = now.hour < 6
+        ? now.subtract(const Duration(days: 1))
+        : now;
+
+    return '${reportingDate.year}-'
+        '${reportingDate.month.toString().padLeft(2, '0')}-'
+        '${reportingDate.day.toString().padLeft(2, '0')}';
+  }
+
+  static Future<int?> getTodayGoal() async {
+    final prefs = await SharedPreferences.getInstance();
+    final goals = prefs.getStringList(_dailyGoalKey) ?? [];
+
+    final key = _reportingDateKey();
+
+    for (final entry in goals) {
+      final parts = entry.split(':');
+      if (parts.length == 2 && parts[0] == key) {
+        return int.tryParse(parts[1]);
+      }
+    }
+
+    return null;
+  }
+
+  static Future<void> lockTodayGoal(int minutes) async {
+    final prefs = await SharedPreferences.getInstance();
+    final goals = prefs.getStringList(_dailyGoalKey) ?? [];
+
+    final key = _reportingDateKey();
+
+    // Never overwrite a goal already locked for today.
+    if (goals.any((entry) => entry.startsWith('$key:'))) {
+      return;
+    }
+
+    goals.add('$key:$minutes');
+    await prefs.setStringList(_dailyGoalKey, goals);
+    await prefs.setInt(_goalKey, minutes);
+  }
+
   static Future<void> clearTower() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_towerKey);
@@ -194,5 +239,6 @@ static Future<void> deleteJournalDraft(String dateKey) async {
   await prefs.remove('journal_drafts_by_date');
   await prefs.remove('processed_tower_dates');
   await prefs.remove('last_processed_tower_date');
+  await prefs.remove('daily_goal_by_date');
  }  
 }
