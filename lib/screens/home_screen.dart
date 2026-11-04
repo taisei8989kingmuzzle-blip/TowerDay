@@ -370,19 +370,19 @@ String _dateKey(DateTime date) {
         
                     const SizedBox(height: 8),
         
-                    TextButton(
-                      onPressed: _showDemoControls,
-                      child: const Text(
-                        'Demo: Change Screen Time',
-                      ),
-                    ),
+                    // TextButton(
+                    //   onPressed: _showDemoControls,
+                    //   child: const Text(
+                    //     'Demo: Change Screen Time',
+                    //   ),
+                    // ),
         
-                    TextButton(
-                      onPressed: _resetForTesting,
-                      child: const Text(
-                        'reset screen time check for the day',
-                      ),
-                    ),
+                    // TextButton(
+                    //   onPressed: _resetForTesting,
+                    //   child: const Text(
+                    //     'reset screen time check for the day',
+                    //   ),
+                    // ),
                   ],
                 ),
               ),
