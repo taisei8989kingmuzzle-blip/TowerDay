@@ -110,16 +110,24 @@ class _TodayJournalDialogState
                   child: Text('😌 Calm'),
                 ),
                 DropdownMenuItem(
+                  value: '😄 Excited',
+                  child: Text('😄 Excited'),
+                ),
+                DropdownMenuItem(
                   value: '😐 Okay',
                   child: Text('😐 Okay'),
                 ),
                 DropdownMenuItem(
-                  value: '😓 Stressed',
-                  child: Text('😓 Stressed'),
-                ),
-                DropdownMenuItem(
                   value: '😴 Tired',
                   child: Text('😴 Tired'),
+                ),
+                DropdownMenuItem(
+                  value: '😤 Frustrated',
+                  child: Text('😤 Frustrated'),
+                ),
+                DropdownMenuItem(
+                  value: '😓 Stressed',
+                  child: Text('😓 Stressed'),
                 ),
               ],
               onChanged: (value) {

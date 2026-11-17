@@ -34,6 +34,7 @@ class _JournalDialogState
     '😐 Okay',
     '😴 Tired',
     '😤 Frustrated',
+    '😓 Stressed',
   ];
 
   @override
